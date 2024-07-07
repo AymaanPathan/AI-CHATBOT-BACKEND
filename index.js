@@ -59,41 +59,46 @@ MainRoute.route("/forgetPassword").post(passwordAuth.forgetPassword);
 MainRoute.route("/resetPassword/:token").post(passwordAuth.resetPassword);
 // App Routes
 
-// Uploads
-MainRoute.post("/upload", upload.single("file"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "Please upload a file!" });
-  }
+const uploadImages = async (req, res) => {
+  upload.single("file")(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({ error: "Error uploading file" });
+    }
 
-  const filePath = path.join(uploadDir, req.file.filename);
+    if (!req.file) {
+      return res.status(400).json({ error: "Please upload a file!" });
+    }
 
-  // Process the image with Google Generative AI
-  const genAI = new GoogleGenerativeAI(
-    "AIzaSyBqvG7BgojRbw0ZzUNyIICyUMu42t5-vI4"
-  );
+    const filePath = path.join(uploadDir, req.file.filename);
 
-  const run = async () => {
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash-latest",
-    });
-
-    const image = {
-      inlineData: {
-        data: Buffer.from(fs.readFileSync(filePath)).toString("base64"),
-        mimeType: req.file.mimetype,
-      },
-    };
+    // Process the image with Google Generative AI
+    const genAI = new GoogleGenerativeAI(
+      "AIzaSyBqvG7BgojRbw0ZzUNyIICyUMu42t5-vI4"
+    );
 
     try {
+      const model = genAI.getGenerativeModel({
+        model: "gemini-1.5-flash-latest",
+      });
+
+      const image = {
+        inlineData: {
+          data: Buffer.from(fs.readFileSync(filePath)).toString("base64"),
+          mimeType: req.file.mimetype,
+        },
+      };
+
       const result = await model.generateContent([image]);
       res.status(200).json(result.response.text());
     } catch (error) {
       console.error("Error processing image:", error);
       res.status(500).json({ error: "Error processing image" });
     }
-  };
-  run();
-});
+  });
+};
+
+// Route definition
+MainRoute.route("/upload").post(uploadImages);
 app.use(MainRoute);
 
 // Connection to DATABASE
