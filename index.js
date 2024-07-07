@@ -62,7 +62,7 @@ MainRoute.route("/resetPassword/:token").post(passwordAuth.resetPassword);
 const uploadImages = async (req, res) => {
   upload.single("file")(req, res, async (err) => {
     if (err) {
-      return res.status(400).json({ error: "Error uploading file" });
+      return res.status(400).json({ error: err});
     }
 
     if (!req.file) {
